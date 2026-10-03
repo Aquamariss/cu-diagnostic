@@ -449,8 +449,8 @@ function renderResult({ id, name, result }, { personalize = false } = {}) {
 
   if (loading) {
     [potential, nextStep, roadmap].forEach((el) => el.classList.add('is-loading'));
-    api(`/api/personalize/${id}`, {})
-      .then(({ result: pr }) => {
+    waitForPersonalization(id)
+      .then((pr) => {
         if (!pr?.personalized) return;
         for (const it of pr.strengths) app.querySelector(`[data-text="strength-${it.id}"]`)?.replaceChildren(it.text);
         for (const it of pr.growthZones) app.querySelector(`[data-text="growth-${it.id}"]`)?.replaceChildren(it.text);
@@ -467,6 +467,20 @@ function renderResult({ id, name, result }, { personalize = false } = {}) {
         [potential, nextStep, roadmap].forEach((el) => el.classList.remove('is-loading'));
       });
   }
+}
+
+// Запускает персонализацию на сервере и опрашивает результат, пока тексты не будут готовы.
+async function waitForPersonalization(id, { intervalMs = 2500, timeoutMs = 150_000 } = {}) {
+  const { status } = await api(`/api/personalize/${id}`, {});
+  if (status === 'error') return null;
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const data = await api(`/api/result/${id}`);
+    if (data.result?.personalized) return data.result;
+    if (data.aiStatus === 'error' || status === 'done') return null;
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
