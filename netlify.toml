@@ -1,0 +1,25 @@
+[build]
+  publish = "public"
+  command = "npm test"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  # questions.js лежит в public/ и нужен функциям для подсчёта баллов
+  included_files = ["public/js/questions.js"]
+
+# API и админка обслуживаются функцией api (пути заданы в netlify/functions/api.mjs).
+# Постоянная ссылка на результат открывает приложение:
+[[redirects]]
+  from = "/r/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
